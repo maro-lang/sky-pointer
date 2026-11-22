@@ -269,7 +269,7 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); }
     <button id="btnCalibrate" class="wide" data-i18n="calibrate"></button>
     <p class="note" data-i18n="compassHint"></p>
     <button id="btnReset" class="wide" data-i18n="reset"></button>
-    <p class="note">Sky Pointer v1.2.1 · 22-nov-2026</p>
+    <p class="note">Sky Pointer v1.2.2 · 22-nov-2026</p>
   </div>
 </section>
 
@@ -2170,6 +2170,9 @@ const ALARM_LEAD_MINUTES = 15;
 const MARKS_STORAGE_KEY = "skyPointer.marks.v1";
 const EVENTS_CACHE_MS = 30 * 60000;        // recompute the event list at most every 30 min
 const MAIN_BELT_SEARCH_DAYS = 365;
+// A marked pass that moved less than this after new orbital data is "the same pass".
+// Passes of one station are ~90 minutes apart, so 20 minutes cannot mix two passes.
+const PASS_MATCH_TOLERANCE_MS = 20 * 60000;
 
 // ---------------------------------------------------------------- marked events
 /** Load the marked events: [{ id, time (ms), title, body, targetId, notified }]. */
@@ -2205,6 +2208,44 @@ async function toggleMark(event) {
   const allowed = await ensureNotificationPermission();
   toast(allowed ? t("markSaved") : t("markSavedNoPermission"));
   return true;
+}
+
+/**
+ * Keep alerts on station passes in step with new orbital data: the same pass
+ * can move a minute or two (and so get a new id). For every marked pass, find
+ * the visible pass of the same station closest in time (within 20 minutes)
+ * and move the alert there: new id (keeps the gold frame), time and details.
+ * If the alert had not fired yet, or its new time is still ahead, it will fire
+ * at the corrected time. Calendar entries already exported cannot be changed.
+ */
+function syncPassMarks(passEvents) {
+  let changed = false;
+  for (const mark of marks) {
+    if (!mark.id.startsWith("pass:")) continue;
+    let best = null;
+    for (const event of passEvents) {
+      if (event.targetId !== mark.targetId) continue;
+      const gap = Math.abs(event.time.getTime() - mark.time);
+      if (gap <= PASS_MATCH_TOLERANCE_MS && (!best || gap < best.gap)) best = { event, gap };
+    }
+    if (!best || best.event.id === mark.id) continue;
+    const newTime = best.event.time.getTime();
+    // A new due time still ahead means the alert must be able to fire again.
+    if (newTime - ALARM_LEAD_MINUTES * 60000 > Date.now()) mark.notified = false;
+    mark.id = best.event.id;
+    mark.time = newTime;
+    mark.title = best.event.title;
+    mark.body = best.event.body;
+    changed = true;
+  }
+  if (changed) saveMarks();
+  return changed;
+}
+
+/** After new orbital data: recompute passes and move the pass alerts. */
+function resyncAfterNewOrbits() {
+  invalidateEvents();
+  syncPassMarks(stationEvents());
 }
 
 /** Forget marks whose event ended more than a day ago. */
@@ -2401,7 +2442,9 @@ function upcomingEvents() {
   const now = nowDate();
   const key = state.lang + "|" + state.observer.lat.toFixed(2) + "|" + state.observer.lon.toFixed(2) + "|" + Math.round(state.timeOffsetMs / 600000);
   if (eventsCache.key === key && Date.now() - eventsCache.at < EVENTS_CACHE_MS) return eventsCache.list;
-  const list = [...stationEvents(), ...meteorEvents(now), ...asteroidEvents(now)]
+  const passes = stationEvents();
+  syncPassMarks(passes);                 // alerts follow passes that moved slightly
+  const list = [...passes, ...meteorEvents(now), ...asteroidEvents(now)]
     .filter((event) => event.time >= new Date(now.getTime() - 30 * 60000))
     .sort((a, b) => a.time - b.time);
   eventsCache = { at: Date.now(), key, list };
@@ -4054,7 +4097,7 @@ function wireUi() {
 /** Button "Update orbital data". */
 async function updateTlesNow() {
   const updated = await refreshTles();
-  if (updated) { rebuildSatRecords(); invalidateEvents(); }
+  if (updated) { rebuildSatRecords(); resyncAfterNewOrbits(); }
   toast(t(updated ? "tleUpdated" : "tleFailed"));
   renderPasses();
 }
@@ -4094,7 +4137,9 @@ async function startApp(useSensors) {
   else enableManual();
   // Fresh orbital data when online (the built-in copy ages quickly).
   if (tlesNeedRefresh()) {
-    refreshTles().then((updated) => { if (updated) { rebuildSatRecords(); invalidateEvents(); toast(t("tleUpdated")); } });
+    refreshTles().then((updated) => {
+      if (updated) { rebuildSatRecords(); resyncAfterNewOrbits(); toast(t("tleUpdated")); }
+    });
   }
 }
 
