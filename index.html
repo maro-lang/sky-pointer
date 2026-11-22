@@ -269,7 +269,7 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); }
     <button id="btnCalibrate" class="wide" data-i18n="calibrate"></button>
     <p class="note" data-i18n="compassHint"></p>
     <button id="btnReset" class="wide" data-i18n="reset"></button>
-    <p class="note">Sky Pointer v1.2.2 · 22-nov-2026</p>
+    <p class="note">Sky Pointer v1.2.3 · 22-nov-2026</p>
   </div>
 </section>
 
@@ -791,6 +791,8 @@ const TEXTS = {
     meteorInfoBest: "Mejor momento de esa noche: {when}, con el radiante a {alt}°: hasta ~{rate} meteoros por hora con cielo muy oscuro (en la ciudad, muchos menos).",
     meteorTip: "Los meteoros cruzan todo el cielo: mira a unos 45° del radiante, no directo a él.",
     meteorParent: "Vienen de {p}.",
+    meteorParentUnknown: "No se sabe de qué cometa o asteroide vienen.",
+    meteorNotHere: "Desde tu ubicación el radiante no sube sobre el horizonte de noche: esta lluvia no se ve desde aquí.",
     asteroidInfo: "Magnitud {mag} ({how}) · a {dist} UA",
     neoOutside: "Se podrá apuntar del {from} al {to} (magnitud hasta {mag}, con binoculares).",
     neoClosest: "Máximo acercamiento: {when}, a {km} km ({ld} veces la distancia a la Luna).",
@@ -975,6 +977,8 @@ const TEXTS = {
     meteorInfoBest: "Best moment that night: {when}, radiant at {alt}°: up to ~{rate} meteors per hour under a very dark sky (far fewer in a city).",
     meteorTip: "Meteors cross the whole sky: look about 45° away from the radiant, not straight at it.",
     meteorParent: "They come from {p}.",
+    meteorParentUnknown: "Their parent comet or asteroid is unknown.",
+    meteorNotHere: "From your location the radiant does not rise above the horizon at night: this shower cannot be seen from here.",
     asteroidInfo: "Magnitude {mag} ({how}) · {dist} AU away",
     neoOutside: "You can point at it from {from} to {to} (up to magnitude {mag}, binoculars).",
     neoClosest: "Closest approach: {when}, {km} km away ({ld} times the Moon's distance).",
@@ -1839,21 +1843,30 @@ function visibilityLabel(mag) {
 
 // ---------------------------------------------------------------- configuration
 // IMO Working List of Visual Meteor Showers (Meteor Shower Calendar 2027,
-// J. Rendtel, IMO): showers with ZHR >= 5 that are seen at night.
+// J. Rendtel, IMO): every night-time shower with ZHR >= 5, from both
+// hemispheres (showers listed only as "variable" are left out).
+// parent = null when the parent body is not known.
 // lambda = solar longitude of the maximum (J2000), ra/dec = radiant at maximum,
 // start/end = activity period [month, day], v = speed km/s.
 const METEOR_SHOWERS = [
   { code: "QUA", es: "Cuadrántidas", en: "Quadrantids", start: [12, 28], end: [1, 12], lambda: 283.15, ra: 230, dec: 49, v: 41, zhr: 80, parent: "2003 EH1" },
+  { code: "ACE", es: "Alfa Centáuridas", en: "Alpha Centaurids", start: [1, 31], end: [2, 20], lambda: 319.4, ra: 211, dec: -58, v: 58, zhr: 6, parent: null },
   { code: "LYR", es: "Líridas", en: "Lyrids", start: [4, 14], end: [4, 30], lambda: 32.32, ra: 271, dec: 34, v: 49, zhr: 18, parent: "C/1861 G1 (Thatcher)" },
   { code: "ETA", es: "Eta Acuáridas", en: "Eta Aquariids", start: [4, 19], end: [5, 28], lambda: 45.5, ra: 338, dec: -1, v: 66, zhr: 50, parent: "1P/Halley" },
   { code: "SDA", es: "Delta Acuáridas del Sur", en: "Southern Delta Aquariids", start: [7, 12], end: [8, 23], lambda: 128, ra: 340, dec: -16, v: 41, zhr: 25, parent: "96P/Machholz" },
   { code: "CAP", es: "Alfa Capricórnidas", en: "Alpha Capricornids", start: [7, 3], end: [8, 15], lambda: 128, ra: 307, dec: -10, v: 23, zhr: 5, parent: "169P/NEAT" },
+  { code: "GDR", es: "Gamma Dracónidas de julio", en: "July Gamma Draconids", start: [7, 25], end: [7, 31], lambda: 125.13, ra: 280, dec: 51, v: 27, zhr: 5, parent: null },
   { code: "PER", es: "Perseidas", en: "Perseids", start: [7, 17], end: [8, 24], lambda: 140.0, ra: 48, dec: 58, v: 59, zhr: 110, parent: "109P/Swift-Tuttle" },
+  { code: "AUR", es: "Aurígidas", en: "Aurigids", start: [8, 28], end: [9, 5], lambda: 158.6, ra: 91, dec: 39, v: 66, zhr: 6, parent: "C/1911 N1 (Kiess)" },
+  { code: "SPE", es: "Épsilon Perseidas de septiembre", en: "September Epsilon Perseids", start: [9, 5], end: [9, 21], lambda: 166.7, ra: 48, dec: 40, v: 64, zhr: 8, parent: null },
   { code: "DRA", es: "Dracónidas", en: "Draconids", start: [10, 6], end: [10, 10], lambda: 195.4, ra: 263, dec: 56, v: 20, zhr: 5, parent: "21P/Giacobini-Zinner" },
   { code: "ORI", es: "Oriónidas", en: "Orionids", start: [10, 2], end: [11, 7], lambda: 208, ra: 95, dec: 16, v: 66, zhr: 20, parent: "1P/Halley" },
   { code: "STA", es: "Táuridas del Sur", en: "Southern Taurids", start: [9, 20], end: [11, 20], lambda: 223, ra: 52, dec: 15, v: 27, zhr: 7, parent: "2P/Encke" },
   { code: "NTA", es: "Táuridas del Norte", en: "Northern Taurids", start: [10, 20], end: [12, 10], lambda: 230, ra: 58, dec: 22, v: 29, zhr: 5, parent: "2P/Encke" },
   { code: "LEO", es: "Leónidas", en: "Leonids", start: [11, 6], end: [11, 30], lambda: 235.27, ra: 152, dec: 22, v: 71, zhr: 15, parent: "55P/Tempel-Tuttle" },
+  { code: "AND", es: "Andromédidas", en: "Andromedids", start: [11, 12], end: [12, 10], lambda: 254, ra: 25, dec: 51, v: 18, zhr: 5, parent: "3D/Biela" },
+  { code: "PUP", es: "Púpidas-Vélidas", en: "Puppid-Velids", start: [12, 1], end: [12, 15], lambda: 255, ra: 123, dec: -45, v: 44, zhr: 10, parent: null },
+  { code: "HYD", es: "Sigma Hídridas", en: "Sigma Hydrids", start: [12, 3], end: [12, 20], lambda: 257, ra: 125, dec: 2, v: 58, zhr: 7, parent: null },
   { code: "GEM", es: "Gemínidas", en: "Geminids", start: [12, 4], end: [12, 20], lambda: 262.2, ra: 112, dec: 33, v: 35, zhr: 150, parent: "3200 Phaethon" },
   { code: "URS", es: "Úrsidas", en: "Ursids", start: [12, 17], end: [12, 26], lambda: 270.7, ra: 217, dec: 76, v: 33, zhr: 10, parent: "8P/Tuttle" },
 ];
@@ -3769,11 +3782,13 @@ function meteorDetails(object, position, date) {
   const lines = [`${t("altitude")} ${Math.round(position.alt)}° · ${t("azimuth")} ${directionName(position.az)} · ${t("zhrLabel", { n: object.shower.zhr })}`];
   if (!info) return lines.join("\n");
   lines.push(t("meteorInfoActive", { from: formatDay(info.window.start), to: formatDay(info.window.end) }) + " " + t("meteorInfoPeak", { when: formatWhen(info.peak) }));
-  if (info.best) {
+  if (!info.best) {
+    lines.push(t("meteorNotHere"));     // e.g. southern showers seen from Europe
+  } else {
     lines.push(t("meteorInfoBest", { when: formatWhen(info.best.date), alt: Math.round(info.best.alt), rate: info.rate }) + " " +
       (info.moonBothers ? t("moonBothers", { n: Math.round(info.moonPhase * 100) }) : t("moonOk", { n: Math.round(info.moonPhase * 100) })));
   }
-  lines.push(t("meteorTip") + " " + t("meteorParent", { p: object.shower.parent }));
+  lines.push(t("meteorTip") + " " + (object.shower.parent ? t("meteorParent", { p: object.shower.parent }) : t("meteorParentUnknown")));
   return lines.join("\n");
 }
 
