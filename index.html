@@ -122,8 +122,11 @@ body.night #nightFilter { display: block; }
 button.small { padding: 5px 12px; border-radius: 999px; background: rgba(255, 184, 77, 0.18); color: var(--accent); font-size: 13px; }
 button.small.on { background: var(--accent); color: #1b1200; font-weight: 600; }
 .event-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Event with an alert: thin gold frame, same place in the list. */
+.pass.marked { border: 1px solid #d4af37; border-radius: 10px; padding: 10px; margin: 6px 0; }
 #calendarChooser { position: fixed; left: 12px; right: 12px; top: 50%; transform: translateY(-50%); z-index: 45;
-  display: none; padding: 14px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--accent); }
+  display: none; padding: 14px; border-radius: var(--radius); background: #0d1222; border: 1px solid var(--accent);
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.55); }  /* the shadow dims everything behind the chooser */
 #calendarChooser.show { display: block; }
 #calendarChooser h3 { margin: 0 0 4px; }
 a.wide { display: block; text-align: center; text-decoration: none; margin-top: 10px; padding: 11px; border-radius: 12px;
@@ -266,7 +269,7 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); }
     <button id="btnCalibrate" class="wide" data-i18n="calibrate"></button>
     <p class="note" data-i18n="compassHint"></p>
     <button id="btnReset" class="wide" data-i18n="reset"></button>
-    <p class="note">Sky Pointer v1.2 · 22-nov-2026</p>
+    <p class="note">Sky Pointer v1.2.1 · 22-nov-2026</p>
   </div>
 </section>
 
@@ -289,12 +292,13 @@ input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); }
   </div>
 </div>
 
-<!-- Calendar chooser: Google Calendar link or .ics file with a 15-minute alarm. -->
+<!-- Calendar chooser: Proton Calendar (.ics file, 15-minute alarm) first, Google Calendar link second. -->
 <div id="calendarChooser">
   <h3 data-i18n="calendarTitle"></h3>
   <p id="calendarEventTitle" class="note"></p>
+  <button id="btnCalProton" class="wide" data-i18n="calendarProton"></button>
+  <p class="note" data-i18n="calendarProtonHint"></p>
   <a id="btnCalGoogle" class="wide" target="_blank" rel="noopener noreferrer" data-i18n="calendarGoogle"></a>
-  <button id="btnCalIcs" class="wide" data-i18n="calendarIcs"></button>
   <p class="note" data-i18n="calendarHelp"></p>
   <button id="btnCalClose" class="wide" data-i18n="close"></button>
 </div>
@@ -731,7 +735,7 @@ const TEXTS = {
     reset: "Volver a valores iniciales",
     // help
     helpTitle: "Cómo se usa",
-    helpBody: "<p><b>1.</b> Toca el nombre de arriba y elige qué quieres ver: la ISS, Tiangong, un planeta, una estrella o una constelación.</p><p><b>2.</b> Sostén el teléfono frente a ti como para una foto. La flecha te dice hacia dónde girar y cuánto subir o bajar.</p><p><b>3.</b> Cuando el objetivo llega a la cruz del centro, el teléfono vibra: levanta la vista por encima del teléfono y búscalo en el cielo.</p><p><b>Estaciones espaciales:</b> solo se ven en ciertos pasos, poco después de atardecer o antes de amanecer, cuando el Sol las ilumina y tu cielo está oscuro. Mira la lista de «Pasos». Cruzan el cielo en 3 a 6 minutos, como una estrella brillante que se mueve sin parpadear.</p><p><b>Brújula:</b> los teléfonos suelen desviarse 5–20°. Haz un «8» con el teléfono, aléjate de objetos metálicos, o usa «Calibrar con el objetivo» apuntando a la Luna.</p><p><b>Meteoros y asteroides:</b> en «Eventos» están los próximos picos de las lluvias de meteoros (con la mejor hora y si la Luna molesta) y las mejores noches para ver asteroides con binoculares. Toca «Avisarme» para que la app te avise 15 minutos antes mientras esté abierta, o «Calendario» para que suene aunque esté cerrada.</p><p><b>Sin sensores:</b> en la PC o si el teléfono no tiene brújula, usa el modo «Manual»: arrastra con el dedo o el ratón y usa la rueda o dos dedos para acercar.</p><p>Datos: estrellas y constelaciones de d3-celestial (Olaf Frohn, BSD-3); planetas con Astronomy Engine (Don Cross, MIT); estaciones con satellite.js (SGP4, MIT) y datos orbitales de CelesTrak; lluvias de meteoros de la IMO (calendario 2027); asteroides del JPL (NASA).</p>",
+    helpBody: "<p><b>1.</b> Toca el nombre de arriba y elige qué quieres ver: la ISS, Tiangong, un planeta, una estrella o una constelación.</p><p><b>2.</b> Sostén el teléfono frente a ti como para una foto. La flecha te dice hacia dónde girar y cuánto subir o bajar.</p><p><b>3.</b> Cuando el objetivo llega a la cruz del centro, el teléfono vibra: levanta la vista por encima del teléfono y búscalo en el cielo.</p><p><b>Estaciones espaciales:</b> solo se ven en ciertos pasos, poco después de atardecer o antes de amanecer, cuando el Sol las ilumina y tu cielo está oscuro. Mira la lista de «Pasos». Cruzan el cielo en 3 a 6 minutos, como una estrella brillante que se mueve sin parpadear.</p><p><b>Brújula:</b> los teléfonos suelen desviarse 5–20°. Haz un «8» con el teléfono, aléjate de objetos metálicos, o usa «Calibrar con el objetivo» apuntando a la Luna.</p><p><b>Meteoros y asteroides:</b> en «Eventos» están los próximos picos de las lluvias de meteoros (con la mejor hora y si la Luna molesta) y las mejores noches para ver asteroides con binoculares. Toca «Avisarme» para que la app te avise 15 minutos antes mientras esté abierta (el evento queda con un marco dorado), o «Calendario» (Proton Calendar o Google Calendar) para que suene aunque esté cerrada.</p><p><b>Sin sensores:</b> en la PC o si el teléfono no tiene brújula, usa el modo «Manual»: arrastra con el dedo o el ratón y usa la rueda o dos dedos para acercar.</p><p>Datos: estrellas y constelaciones de d3-celestial (Olaf Frohn, BSD-3); planetas con Astronomy Engine (Don Cross, MIT); estaciones con satellite.js (SGP4, MIT) y datos orbitales de CelesTrak; lluvias de meteoros de la IMO (calendario 2027); asteroides del JPL (NASA).</p>",
     // cardinal points
     dirs: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"],
     // bodies
@@ -754,7 +758,6 @@ const TEXTS = {
     typeNeo: "Asteroide cercano a la Tierra",
     events: "Eventos",
     eventsTitle: "Próximos eventos",
-    sectionMarked: "Mis avisos",
     sectionPasses: "Estaciones espaciales",
     sectionMeteorPeaks: "Lluvias de meteoros",
     sectionAsteroids: "Asteroides",
@@ -766,8 +769,9 @@ const TEXTS = {
     look: "Ver",
     calendarTitle: "Agregar al calendario",
     calendarGoogle: "Google Calendar",
-    calendarIcs: "Archivo .ics (alarma 15 min antes)",
-    calendarHelp: "El calendario del teléfono avisa aunque la app esté cerrada. En Google Calendar, revisa que el recordatorio sea de 15 minutos.",
+    calendarProton: "Proton Calendar",
+    calendarProtonHint: "Se abre la lista para compartir: elige Proton Calendar e importa el evento. Si en cambio se descarga el archivo, ábrelo con Proton Calendar.",
+    calendarHelp: "El calendario avisa aunque la app esté cerrada. Revisa en el evento guardado que el recordatorio sea de 15 minutos.",
     calendarReminderHint: "Pon un recordatorio {min} minutos antes.",
     markSaved: "Aviso guardado: la app te avisa 15 min antes si está abierta. Para que suene con la app cerrada, agrégalo también al calendario.",
     markSavedNoPermission: "Aviso guardado, pero sin permiso de notificaciones: solo se verá dentro de la app. Agrégalo al calendario para que suene seguro.",
@@ -917,7 +921,7 @@ const TEXTS = {
     language: "Language",
     reset: "Reset to defaults",
     helpTitle: "How to use it",
-    helpBody: "<p><b>1.</b> Tap the name at the top and choose what you want to see: the ISS, Tiangong, a planet, a star or a constellation.</p><p><b>2.</b> Hold the phone in front of you as if taking a photo. The arrow tells you which way to turn and how much to tilt.</p><p><b>3.</b> When the target reaches the centre cross the phone vibrates: look over the phone and find it in the sky.</p><p><b>Space stations:</b> they are only visible on some passes, shortly after sunset or before sunrise, when the Sun lights them and your sky is dark. Check the “Passes” list. They cross the sky in 3 to 6 minutes, like a bright star moving without blinking.</p><p><b>Compass:</b> phones are often off by 5–20°. Move the phone in a figure 8, stay away from metal, or use “Calibrate with target” on the Moon.</p><p><b>Meteors and asteroids:</b> “Events” lists the next meteor shower peaks (best hour and whether the Moon gets in the way) and the best nights to see asteroids with binoculars. Tap “Remind me” for an alert 15 minutes before while the app is open, or “Calendar” to get it even with the app closed.</p><p><b>Without sensors:</b> on a PC or a phone without compass use “Manual” mode: drag with a finger or the mouse, zoom with the wheel or two fingers.</p><p>Data: stars and constellations from d3-celestial (Olaf Frohn, BSD-3); planets with Astronomy Engine (Don Cross, MIT); stations with satellite.js (SGP4, MIT) and orbital data from CelesTrak; meteor showers from the IMO (2027 calendar); asteroids from JPL (NASA).</p>",
+    helpBody: "<p><b>1.</b> Tap the name at the top and choose what you want to see: the ISS, Tiangong, a planet, a star or a constellation.</p><p><b>2.</b> Hold the phone in front of you as if taking a photo. The arrow tells you which way to turn and how much to tilt.</p><p><b>3.</b> When the target reaches the centre cross the phone vibrates: look over the phone and find it in the sky.</p><p><b>Space stations:</b> they are only visible on some passes, shortly after sunset or before sunrise, when the Sun lights them and your sky is dark. Check the “Passes” list. They cross the sky in 3 to 6 minutes, like a bright star moving without blinking.</p><p><b>Compass:</b> phones are often off by 5–20°. Move the phone in a figure 8, stay away from metal, or use “Calibrate with target” on the Moon.</p><p><b>Meteors and asteroids:</b> “Events” lists the next meteor shower peaks (best hour and whether the Moon gets in the way) and the best nights to see asteroids with binoculars. Tap “Remind me” for an alert 15 minutes before while the app is open (the event gets a gold frame), or “Calendar” (Proton Calendar or Google Calendar) to get it even with the app closed.</p><p><b>Without sensors:</b> on a PC or a phone without compass use “Manual” mode: drag with a finger or the mouse, zoom with the wheel or two fingers.</p><p>Data: stars and constellations from d3-celestial (Olaf Frohn, BSD-3); planets with Astronomy Engine (Don Cross, MIT); stations with satellite.js (SGP4, MIT) and orbital data from CelesTrak; meteor showers from the IMO (2027 calendar); asteroids from JPL (NASA).</p>",
     dirs: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"],
     Sun: "Sun", Moon: "Moon", Mercury: "Mercury", Venus: "Venus", Mars: "Mars",
     Jupiter: "Jupiter", Saturn: "Saturn", Uranus: "Uranus", Neptune: "Neptune",
@@ -938,7 +942,6 @@ const TEXTS = {
     typeNeo: "Near-Earth asteroid",
     events: "Events",
     eventsTitle: "Upcoming events",
-    sectionMarked: "My alerts",
     sectionPasses: "Space stations",
     sectionMeteorPeaks: "Meteor showers",
     sectionAsteroids: "Asteroids",
@@ -950,8 +953,9 @@ const TEXTS = {
     look: "Show",
     calendarTitle: "Add to calendar",
     calendarGoogle: "Google Calendar",
-    calendarIcs: ".ics file (alarm 15 min before)",
-    calendarHelp: "The phone's calendar alerts you even with the app closed. In Google Calendar, check that the reminder is 15 minutes.",
+    calendarProton: "Proton Calendar",
+    calendarProtonHint: "The share sheet opens: choose Proton Calendar and import the event. If the file is downloaded instead, open it with Proton Calendar.",
+    calendarHelp: "The calendar alerts you even with the app closed. Check in the saved event that the reminder is 15 minutes.",
     calendarReminderHint: "Set a reminder {min} minutes before.",
     markSaved: "Alert saved: the app warns you 15 min before while it is open. To get it with the app closed, also add it to your calendar.",
     markSavedNoPermission: "Alert saved, but notifications are not allowed: it will only show inside the app. Add it to your calendar to be sure.",
@@ -2153,7 +2157,8 @@ function bestAsteroidNight(object, fromDate, days) {
 // 15 minutes before:
 //   1. Inside the app: while the page is open (or recently in the background)
 //      a notification is shown through the service worker (Android needs it).
-//   2. In the phone's calendar: an .ics file with a 15-minute alarm, or a
+//   2. In the phone's calendar: an .ics file with a 15-minute alarm, shared
+//      to the Proton Calendar app (Proton has no "new event" link), or a
 //      Google Calendar link. This one works even with the app closed.
 //
 // Depends on: core.js, i18n.js, astro.js (passes), minor.js, sensors.js (buzz),
@@ -3501,7 +3506,8 @@ let shownEvents = {};
 function eventRow(event) {
   shownEvents[event.id] = event;
   const marked = isMarked(event.id);
-  return `<div class="pass visible">
+  // Events with an alert keep their place in the list and get a thin gold frame.
+  return `<div class="pass visible${marked ? " marked" : ""}">
     <div class="pass-when">${escapeHtml(formatWhen(event.time))} · ${escapeHtml(event.title)}</div>
     <div class="pass-path">${escapeHtml(event.body)}</div>
     <div class="event-actions">
@@ -3523,8 +3529,9 @@ function hiddenPassRow(key, pass) {
 }
 
 /**
- * The "Events" panel: my alerts, station passes, meteor shower peaks and
- * asteroid highlights, each with Remind me / Calendar / Show buttons.
+ * The "Events" panel: station passes, meteor shower peaks and asteroid
+ * highlights, each with Remind me / Calendar / Show buttons. Events with an
+ * alert are framed in gold where they are (no separate list).
  */
 function renderPasses() {
   const body = $("passesBody");
@@ -3534,10 +3541,6 @@ function renderPasses() {
     shownEvents = {};
     const events = upcomingEvents();
     let html = "";
-
-    // My alerts (events marked with the bell that are still ahead).
-    const marked = events.filter((event) => isMarked(event.id));
-    if (marked.length) html += `<h3>🔔 ${t("sectionMarked")}</h3>` + marked.map(eventRow).join("");
 
     // Space stations.
     html += `<h3>${t("sectionPasses")}</h3>`;
@@ -3574,12 +3577,16 @@ function goToEvent(event) {
   refreshStatus();
 }
 
-/** Small chooser: Google Calendar link or .ics file for the phone's calendar app. */
+/**
+ * Small chooser: Proton Calendar first (it has no "new event" link, so the
+ * event goes as an .ics file through the share sheet / a download that the
+ * Proton Calendar app can open), then Google Calendar (a prefilled link).
+ */
 function openCalendarChooser(event) {
   const box = $("calendarChooser");
   $("calendarEventTitle").textContent = formatWhen(event.time) + " · " + event.title;
+  $("btnCalProton").onclick = () => { exportIcs(event); box.classList.remove("show"); };
   $("btnCalGoogle").href = googleCalendarUrl(event);
-  $("btnCalIcs").onclick = () => { exportIcs(event); box.classList.remove("show"); };
   box.classList.add("show");
 }
 
